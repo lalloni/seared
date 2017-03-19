@@ -26,19 +26,61 @@
 package seared
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"runtime"
+	"strings"
 )
 
-func TestNewParser(t *testing.T) {
-	a := assert.New(t)
-	p := NewParser(func(r *Builder) Expression {
-		return r.Rule(func() Expression {
-			return r.Rune('a')
-		})
-	})
-	a.Equal("TestNewParser", p.name)
-	a.NotNil(p.log)
-	a.NotNil(p.main)
+func newBuilder(parser *Parser) *Builder {
+	return &Builder{
+		parser: parser,
+		rules:  map[string]Expression{},
+	}
+}
+
+type RuleOption func(Rule)
+
+type Builder struct {
+	parser *Parser
+	rules  map[string]Expression
+}
+
+func (b *Builder) DropNode() RuleOption {
+	return func(r Rule) {
+		r.SetDropNode(true)
+	}
+}
+
+func (b *Builder) OmitNode() RuleOption {
+	return func(r Rule) {
+		r.SetOmitNode(true)
+	}
+}
+
+func (b *Builder) Rule(rule func() Expression, options ...RuleOption) Expression {
+	key, name := callerKeyName()
+	r, ok := b.rules[key]
+	if ok {
+		return r
+	}
+	this := newRule(name, b.parser, nil)
+	b.rules[key] = this
+	this.SetExpression(rule())
+	for _, option := range options {
+		option(this)
+	}
+	return this
+}
+
+func callerKeyName() (key string, label string) {
+	pc, _, _, _ := runtime.Caller(2)
+	f, _ := runtime.CallersFrames([]uintptr{pc}).Next()
+	return f.Function, f.Function[1+strings.LastIndex(f.Function, "."):]
+}
+
+func expectations(rules []Expression) []string {
+	result := make([]string, len(rules))
+	for i, rule := range rules {
+		result[i] = rule.Expectation()
+	}
+	return result
 }

@@ -35,7 +35,7 @@ import (
 )
 
 func TestStringBuffer(t *testing.T) {
-	b := NewStringBuffer("input")
+	b := StringBuffer("input")
 	assert.NotNil(t, b)
 	assert.EqualValues(t, "input", b.Input())
 	assert.EqualValues(t, 'p', b.Rune(2))
@@ -45,7 +45,7 @@ func TestStringBuffer(t *testing.T) {
 }
 
 func TestStringBufferUnicode(t *testing.T) {
-	b := NewStringBuffer("aaŧ←↓ŋħ5ł")
+	b := StringBuffer("aaŧ←↓ŋħ5ł")
 	assert.NotNil(t, b)
 	assert.EqualValues(t, "aaŧ←↓ŋħ5ł", b.Input())
 	assert.EqualValues(t, "←↓", b.String(3, 5))
@@ -54,20 +54,29 @@ func TestStringBufferUnicode(t *testing.T) {
 
 func TestStringBufferLocation(t *testing.T) {
 	s := "lots\nof text\nin multiple lines\nand more,\nmore, much more"
-	b := NewStringBuffer(s)
-	assert.EqualValues(t, location.NewLocation(1, 1, 0), b.Location(0))
-	assert.EqualValues(t, location.NewLocation(1, 2, 1), b.Location(1))
-	assert.EqualValues(t, location.NewLocation(2, 6, 10), b.Location(10))
-	assert.EqualValues(t, location.NewLocation(3, 8, 20), b.Location(20))
-	assert.EqualValues(t, location.NewLocation(2, 7, 11), b.Location(11))
-	assert.EqualValues(t, location.NewLocation(2, 8, 12), b.Location(12))
-	assert.EqualValues(t, location.NewLocation(3, 1, 13), b.Location(13))
+	b := StringBuffer(s)
+	assert.EqualValues(t, location.New(1, 1, 0), b.Location(0))
+	assert.EqualValues(t, location.New(1, 2, 1), b.Location(1))
+	assert.EqualValues(t, location.New(2, 6, 10), b.Location(10))
+	assert.EqualValues(t, location.New(3, 8, 20), b.Location(20))
+	assert.EqualValues(t, location.New(2, 7, 11), b.Location(11))
+	assert.EqualValues(t, location.New(2, 8, 12), b.Location(12))
+	assert.EqualValues(t, location.New(3, 1, 13), b.Location(13))
+}
+
+func TestStringBufferLine(t *testing.T) {
+	a := assert.New(t)
+	s := "lots\nof text\nin multiple lines\nand more,\nmore, much more"
+	b := StringBuffer(s)
+	a.Equal("of text", b.Line(2))
+	a.Equal("lots", b.Line(1))
+	a.Equal("and more,", b.Line(4))
 }
 
 func TestStringBufferRuneReader(t *testing.T) {
 	a := assert.New(t)
 	s := "lħs\nof¶↓n€ß"
-	b := NewStringBuffer(s)
+	b := StringBuffer(s)
 	r := b.Reader(0)
 	c := 0
 	for _, ru := range []rune(s) {
@@ -83,7 +92,7 @@ func TestStringBufferRuneReader(t *testing.T) {
 
 func TestStringBufferRunes(t *testing.T) {
 	a := assert.New(t)
-	b := NewStringBuffer("fsjdsljdsfl")
+	b := StringBuffer("fsjdsljdsfl")
 	a.EqualValues([]rune("f"), b.Runes(0, 1))
 	a.EqualValues([]rune("fs"), b.Runes(0, 2))
 	a.EqualValues([]rune("ds"), b.Runes(3, 5))

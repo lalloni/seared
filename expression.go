@@ -26,19 +26,41 @@
 package seared
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/lalloni/seared/buffer"
 )
 
-func TestNewParser(t *testing.T) {
-	a := assert.New(t)
-	p := NewParser(func(r *Builder) Expression {
-		return r.Rule(func() Expression {
-			return r.Rune('a')
-		})
-	})
-	a.Equal("TestNewParser", p.name)
-	a.NotNil(p.log)
-	a.NotNil(p.main)
+// Expression is a PEG parsing expression
+type Expression interface {
+	Name() string
+	Apply(input buffer.Buffer, position int) (result *Result)
+	Expectation() string
+}
+
+type expression struct {
+	Expression
+	name        string
+	expectation string
+	parser      *Parser
+	matcher     Matcher
+}
+
+func newExpression(name, expectation string, p *Parser, m Matcher) *expression {
+	return &expression{
+		name:        name,
+		expectation: expectation,
+		matcher:     m,
+		parser:      p,
+	}
+}
+
+func (r *expression) Name() string {
+	return r.name
+}
+
+func (r *expression) Expectation() string {
+	return r.expectation
+}
+
+func (r *expression) Apply(input buffer.Buffer, pos int) (result *Result) {
+	return r.matcher(input, pos)
 }

@@ -23,7 +23,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package seared
+package examples
 
 import (
 	"testing"
@@ -31,14 +31,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewParser(t *testing.T) {
+func TestBooleanLogicParser(t *testing.T) {
 	a := assert.New(t)
-	p := NewParser(func(r *Builder) Expression {
-		return r.Rule(func() Expression {
-			return r.Rune('a')
-		})
-	})
-	a.Equal("TestNewParser", p.name)
-	a.NotNil(p.log)
-	a.NotNil(p.main)
+	p := BooleanExpressionParser()
+	cs := []struct {
+		s string
+		e bool
+	}{
+		{"T", true},
+		{"F", true},
+		{"F|T", true},
+		{"F|T&T", true},
+		{"F | T & T", true},
+		{"", false},
+		{"F F", false},
+		{"F T", false},
+		{"F | | T", false},
+	}
+	for _, c := range cs {
+		r := p.ParseString(c.s)
+		if !r.Success {
+			t.Logf("%q parse error: %s\n", c.s, r.BetterError())
+			//t.Log(r.FormatResultTree())
+		} else {
+			t.Logf("%q parse tree: %v\n", c.s, r.FormatNodeTree())
+		}
+		a.Equal(c.e, r.Success)
+	}
 }

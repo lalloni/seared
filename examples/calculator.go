@@ -27,36 +27,50 @@ package examples
 
 import "github.com/lalloni/seared"
 
-func Number(r *seared.Rules) seared.Rule {
-	return r.Rule(func() seared.Rule {
-		return r.OneOrMore(r.Range('0', '9'))
+// ----------------- Rules -----------------------------------------------------
+
+func Digit(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Range('0', '9')
 	})
 }
 
-func Factor(r *seared.Rules) seared.Rule {
-	return r.Rule(func() seared.Rule {
-		return r.Choice(Number(r), r.Sequence(r.Rune('('), Sum(r), r.Rune(')')))
+func Number(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.OneOrMore(Digit(b))
 	})
 }
 
-func Term(r *seared.Rules) seared.Rule {
-	return r.Rule(func() seared.Rule {
-		return r.Sequence(Factor(r), r.ZeroOrMore(r.Any("*/"), Factor(r)))
+func Parenthesis(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(b.Rune('('), Sum(b), b.Rune(')'))
 	})
 }
 
-func Sum(r *seared.Rules) seared.Rule {
-	return r.Rule(func() seared.Rule {
-		return r.Sequence(Term(r), r.ZeroOrMore(r.Any("+-"), Term(r)))
+func Factor(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Choice(Number(b), Parenthesis(b))
 	})
 }
 
-func Operation(r *seared.Rules) seared.Rule {
-	return r.Rule(func() seared.Rule {
-		return r.Sequence(Sum(r), r.End())
+func Term(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Factor(b), b.ZeroOrMore(b.AnyOf("*/"), Factor(b)))
 	})
 }
 
-func Calculator() *seared.Parser {
-	return seared.NewParser(Operation)
+func Sum(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Term(b), b.ZeroOrMore(b.AnyOf("+-"), Term(b)))
+	})
+}
+
+func Calculator(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Sum(b), b.End())
+	})
+}
+
+func CalculatorParser() *seared.Parser {
+	return seared.NewParser(Calculator)
 }

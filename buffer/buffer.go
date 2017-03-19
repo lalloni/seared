@@ -40,6 +40,7 @@ type Buffer interface {
 	String(start, end int) string
 	Reader(pos int) io.RuneReader
 	Location(pos int) location.Location
+	Line(n int) string
 }
 
 type bufferReader struct {
@@ -61,15 +62,15 @@ type buffer struct {
 	nls   []int
 }
 
-func NewStringBuffer(input string) Buffer {
+func StringBuffer(input string) Buffer {
 	return &buffer{input: []rune(input)}
 }
 
-func NewRunesBuffer(input []rune) Buffer {
+func RunesBuffer(input []rune) Buffer {
 	return &buffer{input: input}
 }
 
-func NewBytesBuffer(input []byte) Buffer {
+func BytesBuffer(input []byte) Buffer {
 	return &buffer{input: []rune(string(input))}
 }
 
@@ -105,6 +106,16 @@ func (b *buffer) Length() int {
 
 func (b *buffer) Reader(pos int) io.RuneReader {
 	return &bufferReader{b, pos}
+}
+
+func (b *buffer) Line(n int) string {
+	nls := b.newlines()
+	start := 0
+	if n > 1 {
+		start = nls[n-2] + 1
+	}
+	end := nls[n-1]
+	return b.String(start, end)
 }
 
 func (b *buffer) Location(pos int) location.Location {

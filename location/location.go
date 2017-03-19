@@ -41,6 +41,6 @@ func (l Location) ShortString() string {
 	return fmt.Sprintf("%d/%d:%d", l.Position, l.Line, l.Column)
 }
 
-func NewLocation(line, column, position int) Location {
+func New(line, column, position int) Location {
 	return Location{Line: line, Column: column, Position: position}
 }

@@ -40,3 +40,11 @@ func TestLocationStringShort(t *testing.T) {
 	l := &Location{10, 30, 40}
 	assert.EqualValues(t, "40/10:30", l.ShortString())
 }
+
+func TestLocationConstructor(t *testing.T) {
+	a := assert.New(t)
+	l := New(1, 2, 3)
+	a.Equal(1, l.Line)
+	a.Equal(2, l.Column)
+	a.Equal(3, l.Position)
+}

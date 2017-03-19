@@ -23,22 +23,42 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package seared
+package examples
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/lalloni/seared"
 )
 
-func TestNewParser(t *testing.T) {
-	a := assert.New(t)
-	p := NewParser(func(r *Builder) Expression {
-		return r.Rule(func() Expression {
-			return r.Rune('a')
-		})
+func BooleanExpressionParser() *seared.Parser {
+	return seared.NewParser(BooleanExpression)
+}
+
+func BooleanExpression(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Disjunction(b), b.End())
 	})
-	a.Equal("TestNewParser", p.name)
-	a.NotNil(p.log)
-	a.NotNil(p.main)
+}
+
+func Disjunction(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Conjunction(b), b.ZeroOrMore(b.Rune('|'), b.Optional(Space(b)), Conjunction(b)))
+	})
+}
+
+func Conjunction(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(Value(b), b.ZeroOrMore(b.Rune('&'), b.Optional(Space(b)), Value(b)))
+	})
+}
+
+func Value(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.Sequence(b.Choice(b.Rune('T'), b.Rune('F')), b.Optional(Space(b)))
+	})
+}
+
+func Space(b *seared.Builder) seared.Expression {
+	return b.Rule(func() seared.Expression {
+		return b.OneOrMore(b.AnyOf(" \t\n"))
+	}, b.DropNode())
 }

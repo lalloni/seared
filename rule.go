@@ -30,78 +30,81 @@ import (
 
 	"github.com/lalloni/seared/buffer"
 	"github.com/lalloni/seared/location"
+	"github.com/lalloni/seared/node"
 )
 
-type Matcher func(input buffer.Buffer, pos int) (success bool, nextpos int)
-
+// Rule is a PEG rule
 type Rule interface {
-	Apply(input buffer.Buffer, pos int) (success bool, nextpos int)
+	Expression
+	SetExpression(expression Expression)
+	SetDropNode(b bool)
+	SetOmitNode(b bool)
 }
 
-func newProxyRule(name string, parser *Parser, rule Rule) *proxyRule {
-	return &proxyRule{
-		name:   name,
-		parser: parser,
-		rule:   rule,
+type rule struct {
+	Rule
+	name       string
+	parser     *Parser
+	expression Expression
+	dropNode   bool
+	omitNode   bool
+}
+
+func newRule(name string, p *Parser, expression Expression) *rule {
+	return &rule{
+		name:       name,
+		parser:     p,
+		expression: expression,
 	}
 }
 
-type proxyRule struct {
-	name   string
-	parser *Parser
-	rule   Rule
-}
-
-func (r *proxyRule) SetRule(rule Rule) {
-	r.rule = rule
-}
-
-func (r *proxyRule) Name() string {
+func (r *rule) Name() string {
 	return r.name
 }
 
-func (r *proxyRule) Apply(input buffer.Buffer, pos int) (success bool, nextpos int) {
+func (r *rule) Expectation() string {
+	return r.Name()
+}
+
+func (r *rule) SetExpression(e Expression) {
+	r.expression = e
+}
+
+func (r *rule) SetDropNode(b bool) {
+	r.dropNode = b
+}
+
+func (r *rule) SetOmitNode(b bool) {
+	r.omitNode = b
+}
+
+func (r *rule) Apply(input buffer.Buffer, pos int) (result *Result) {
 	var loc location.Location
 	if r.parser.debug {
 		loc = input.Location(pos)
 		r.parser.log.Debugf("Trying %q at %s of %q", r.Name(), loc, input.Input())
 	}
-	success, nextpos = r.rule.Apply(input, pos)
+	inner := r.expression.Apply(input, pos)
+	if inner.Success {
+		result = Success(r, input, inner.Start, inner.End).WithResults(inner)
+		if !r.dropNode {
+			if r.omitNode {
+				result.WithNodes(inner.Nodes...)
+			} else {
+				result.WithNodes(node.NewNonTerminal(r.Name(), inner.Nodes))
+			}
+		}
+	} else {
+		result = Failure(r, input, inner.Start, inner.End).WithResults(inner)
+	}
 	if r.parser.debug {
 		var s string
-		if success {
-			s = fmt.Sprintf("succeed consuming %q", input.String(pos, nextpos))
+		if result.Success {
+			s = fmt.Sprintf("succeed consuming %q", input.String(pos, result.End))
 		} else {
-			s = "failed"
+			s = fmt.Sprintf("failed to consume: %+v", result.Expression.Expectation())
 		}
 		r.parser.log.Debugf("Result of %q at %s of %q: %s\n", r.Name(), loc, input.Input(), s)
 	}
 	return
-}
-
-func newMatcherRule(name string, parser *Parser, matcher Matcher) *matcherRule {
-	return &matcherRule{
-		name:    name,
-		matcher: matcher,
-		parser:  parser,
-	}
-}
-
-type matcherRule struct {
-	name    string
-	parser  *Parser
-	matcher Matcher
-}
-
-func (r *matcherRule) Name() string {
-	return r.name
-}
-
-func (r *matcherRule) Apply(input buffer.Buffer, pos int) (success bool, nextpos int) {
-	success, nextpos = r.matcher(input, pos)
-	return
-}
-
-func (r *matcherRule) SetMatcher(matcher Matcher) {
-	r.matcher = matcher
 }

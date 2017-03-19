@@ -23,22 +23,55 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-package seared
+package node
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"strings"
 )
 
-func TestNewParser(t *testing.T) {
-	a := assert.New(t)
-	p := NewParser(func(r *Builder) Expression {
-		return r.Rule(func() Expression {
-			return r.Rune('a')
-		})
-	})
-	a.Equal("TestNewParser", p.name)
-	a.NotNil(p.log)
-	a.NotNil(p.main)
+type Kind int
+
+const (
+	Terminal Kind = iota
+	NonTerminal
+)
+
+type Node struct {
+	Kind     Kind
+	Label    string
+	Children []*Node
+	Value    string
+}
+
+func NewTerminal(value string) *Node {
+	return &Node{
+		Kind:  Terminal,
+		Value: value,
+	}
+}
+
+func NewNonTerminal(label string, children []*Node) *Node {
+	return &Node{
+		Kind:     NonTerminal,
+		Label:    label,
+		Children: children,
+	}
+}
+
+func (n *Node) Format() string {
+	var s string
+	switch n.Kind {
+	case Terminal:
+		s = "\"" + n.Value + "\""
+	case NonTerminal:
+		ss := []string{}
+		for _, child := range n.Children {
+			ss = append(ss, child.Format())
+		}
+		s = "(" + n.Label + " " + strings.Join(ss, " ") + ")"
+	default:
+		s = fmt.Sprintf("(kind %v node)", n.Kind)
+	}
+	return s
 }

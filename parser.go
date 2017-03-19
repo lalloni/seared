@@ -29,15 +29,15 @@ import "github.com/lalloni/seared/buffer"
 
 type Parser struct {
 	name  string
-	main  Rule
+	main  Expression
 	debug bool
 	log   Log
 }
 
-func NewParser(main func(*Rules) Rule) *Parser {
+func NewParser(main func(*Builder) Expression) *Parser {
 	_, name := callerKeyName()
 	parser := &Parser{name: name, log: StandardLog()}
-	parser.main = main(rules(parser))
+	parser.main = main(newBuilder(parser))
 	return parser
 }
 
@@ -45,9 +45,12 @@ func (p *Parser) Name() string {
 	return p.name
 }
 
-func (p *Parser) Recognize(input string) (success bool) {
-	success, _ = p.main.Apply(buffer.NewStringBuffer(input), 0)
-	return
+func (p *Parser) ParseBuffer(input buffer.Buffer) *Result {
+	return p.main.Apply(input, 0)
+}
+
+func (p *Parser) ParseString(input string) *Result {
+	return p.ParseBuffer(buffer.StringBuffer(input))
 }
 
 func (p *Parser) SetLog(log Log) {
